@@ -3,67 +3,154 @@
 <head>
   <meta charset="UTF-8" />
   <title>Flutter ↔ JS Bridge Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+    :root {
+      --primary: #007bff;
+      --primary-dark: #0056b3;
+      --bg: #f7f9fc;
+      --card-bg: #ffffff;
+      --border: #dcdfe3;
+      --text: #333;
+      --log-font: monospace;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 20px;
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
     }
+
     h2 {
+      background: var(--primary);
+      color: white;
+      width: 100%;
       text-align: center;
+      padding: 15px 0;
+      margin: 0;
+      font-weight: 600;
     }
-    #controls {
+
+    .container {
+      max-width: 800px;
+      width: 90%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin: 20px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      padding: 15px 20px 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .inputs {
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
       gap: 10px;
-      margin-bottom: 15px;
     }
-    input, button {
+
+    input {
+      flex: 1 1 45%;
+      min-width: 150px;
       padding: 10px;
       font-size: 14px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+      border-radius: 6px;
+      border: 1px solid var(--border);
     }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
     button {
-      cursor: pointer;
-      background: #007bff;
-      color: white;
+      flex: 1 1 45%;
+      min-width: 150px;
+      padding: 10px 15px;
+      font-size: 14px;
+      border-radius: 6px;
       border: none;
+      cursor: pointer;
+      color: white;
+      background: var(--primary);
+      transition: background 0.2s;
     }
+
     button:hover {
-      background: #0056b3;
+      background: var(--primary-dark);
     }
+
+    button.clear {
+      background: #dc3545;
+    }
+
+    button.clear:hover {
+      background: #b92b37;
+    }
+
     #logs {
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 6px;
       padding: 10px;
       height: 300px;
       overflow-y: auto;
-      font-family: monospace;
+      font-family: var(--log-font);
+      font-size: 13px;
       white-space: pre-wrap;
     }
+
     .log-line {
-      border-bottom: 1px dashed #ccc;
+      border-bottom: 1px dashed #ddd;
       padding: 5px 0;
+    }
+
+    .log-in {
+      color: #0c6b58;
+    }
+
+    .log-out {
+      color: #0056b3;
+    }
+
+    .log-error {
+      color: #b92b37;
+    }
+
+    @media (max-width: 600px) {
+      .buttons button, input {
+        flex: 1 1 100%;
+      }
     }
   </style>
 </head>
 <body>
   <h2>Flutter ↔ JS Bridge Tester</h2>
+  <div class="container">
+    <div class="inputs">
+      <input type="text" id="keyInput" placeholder="Enter key (e.g. getPlatform)" />
+      <input type="text" id="valueInput" placeholder='Enter value (e.g. {"color":"dark"})' />
+    </div>
 
-  <div id="controls">
-    <input type="text" id="keyInput" placeholder="Enter key (e.g. getPlatform)" />
-    <input type="text" id="valueInput" placeholder='Enter value (e.g. {"color":"dark"})' />
+    <div class="buttons">
+      <button onclick="btnPullDataFromFlutter()">pullDataFromFlutter</button>
+      <button onclick="btnPushDataToFlutter()">pushDataToFlutter</button>
+      <button onclick="btnPushDataToJs()">pushDataToJs</button>
+      <button onclick="btnPullDataFromJs()">pullDataFromJs</button>
+      <button class="clear" onclick="clearLogs()">Clear Logs</button>
+    </div>
 
-    <button onclick="btnPullDataFromFlutter()">pullDataFromFlutter</button>
-    <button onclick="btnPushDataToFlutter()">pushDataToFlutter</button>
-    <button onclick="btnPushDataToJs()">pushDataToJs</button>
-    <button onclick="btnPullDataFromJs()">pullDataFromJs</button>
+    <div id="logs"></div>
   </div>
-
-  <div id="logs"></div>
 
   <script>
     // ======== Utility Functions ========
@@ -71,20 +158,26 @@
       const logs = document.getElementById('logs');
       const line = document.createElement('div');
       line.classList.add('log-line');
+      if (type === 'in') line.classList.add('log-in');
+      else if (type === 'out') line.classList.add('log-out');
+      else if (type === 'error') line.classList.add('log-error');
       line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-      if (type === 'error') line.style.color = 'red';
       logs.appendChild(line);
       logs.scrollTop = logs.scrollHeight;
       console.log(msg);
     }
 
+    function clearLogs() {
+      document.getElementById('logs').innerHTML = '';
+      log('🧹 Logs cleared');
+    }
+
     function safePostMessage(data) {
       if (window.FlutterBridge && FlutterBridge.postMessage) {
         FlutterBridge.postMessage(JSON.stringify(data));
-        log(`Sent to Flutter: ${JSON.stringify(data)}`);
+        log(`Sent to Flutter: ${JSON.stringify(data)}`, 'out');
       } else {
-        log('⚠️ FlutterBridge not defined (mocking call)', 'error');
-        console.warn('FlutterBridge not defined:', data);
+        log('⚠️ FlutterBridge not defined (mocked call)', 'error');
       }
     }
 
@@ -101,21 +194,20 @@
 
     // ======== Flutter → JS ========
     window.onFlutterMessage = function (msg) {
-      log(`Flutter → JS pushDataToJs received: ${JSON.stringify(msg)}`);
+      log(`Flutter → JS pushDataToJs received: ${JSON.stringify(msg)}`, 'in');
     };
 
     window.onFlutterRequest = function (key) {
-      log(`Flutter → JS pullDataFromJs('${key}') called`);
-      // Return some mock data for testing
+      log(`Flutter → JS pullDataFromJs('${key}') called`, 'in');
       const responses = {
-        getSiteProp: { siteName: 'Test Site', version: '1.0.0' },
+        getSiteProp: { siteName: 'Responsive Test Site', version: '2.0.0' },
         default: { message: 'No data for key' }
       };
       return JSON.stringify(responses[key] || responses.default);
     };
 
     window.onFlutterData = function (res) {
-      log(`JS received from Flutter: ${res.key} = ${JSON.stringify(res.data)}`);
+      log(`JS received from Flutter: ${res.key} = ${JSON.stringify(res.data)}`, 'in');
     };
 
     // ======== Button Handlers ========
@@ -134,27 +226,27 @@
       const key = document.getElementById('keyInput').value || 'setOneSignalPlayerId';
       const val = document.getElementById('valueInput').value || '{"id":"abc123"}';
       const msg = { key, data: JSON.parse(val) };
-      log(`Simulating Flutter → JS pushDataToJs(${key})`);
+      log(`Simulated Flutter → JS pushDataToJs(${key})`, 'in');
       window.onFlutterMessage && window.onFlutterMessage(msg);
     }
 
     function btnPullDataFromJs() {
       const key = document.getElementById('keyInput').value || 'getSiteProp';
-      log(`Simulating Flutter → JS pullDataFromJs(${key})`);
+      log(`Simulated Flutter → JS pullDataFromJs(${key})`, 'in');
       const result = window.onFlutterRequest && window.onFlutterRequest(key);
-      log(`Returned to Flutter: ${result}`);
+      log(`Returned to Flutter: ${result}`, 'out');
     }
 
-    // ======== Mock for browser testing ========
+    // ======== Mock for Browser Testing ========
     if (!window.FlutterBridge) {
       window.FlutterBridge = {
         postMessage: (msg) => {
-          log('🧪 Mock FlutterBridge.postMessage called: ' + msg);
+          log('🧪 Mock FlutterBridge.postMessage called: ' + msg, 'error');
         }
       };
     }
 
-    log('✅ JS Bridge Test Page Loaded');
+    log('✅ Responsive JS Bridge Test Page Loaded');
   </script>
 </body>
 </html>
