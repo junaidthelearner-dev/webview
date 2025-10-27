@@ -1,0 +1,59 @@
+<h1>Flutter</h1>
+<script>
+  // =============== JS → Flutter Calls =================
+
+  // JS asks Flutter for some data
+  function pullDataFromFlutter(key) {
+    alert(`JS → Flutter: pullDataFromFlutter('${key}') called`);
+    FlutterBridge?.postMessage(JSON.stringify({
+      action: `pull:${key}`,
+      payload: null
+    }));
+  }
+
+  // JS sends some data or command to Flutter
+  function pushDataToFlutter(key, data) {
+    alert(`JS → Flutter: pushDataToFlutter('${key}', ${JSON.stringify(data)}) called`);
+    FlutterBridge?.postMessage(JSON.stringify({
+      action: `push:${key}`,
+      payload: data
+    }));
+  }
+
+  // =============== Flutter → JS Calls =================
+
+  // Flutter calls this when sending data into JS
+  window.onFlutterMessage = function (msg) {
+    const { key, data } = msg;
+    alert(`Flutter → JS: pushDataToJs('${key}', ${JSON.stringify(data)}) received`);
+    console.log('Flutter → JS:', key, data);
+  };
+
+  // Flutter calls this when it wants to get data from JS
+  window.onFlutterRequest = function (key) {
+    alert(`Flutter → JS: pullDataFromJs('${key}') called`);
+    // Return a mock response for Flutter
+    const response = {
+      getSiteProp: { siteName: 'Test Site', version: '1.0.0' },
+      default: { message: 'Unknown key' }
+    };
+    return JSON.stringify(response[key] || response.default);
+  };
+
+  // When Flutter sends data back after JS called pullDataFromFlutter()
+  window.onFlutterData = function (res) {
+    alert(`JS received data from Flutter: ${res.key} = ${JSON.stringify(res.data)}`);
+    console.log('Data from Flutter:', res);
+  };
+
+  // =============== AUTO TEST ON PAGE LOAD ===============
+  window.onload = function () {
+    alert("JS Bridge Test Loaded ✅\nTesting pullDataFromFlutter and pushDataToFlutter...");
+
+    // Test JS → Flutter
+    pullDataFromFlutter('getPlatform');
+    pullDataFromFlutter('getLocation');
+    pushDataToFlutter('setTheme', { color: 'dark' });
+    pushDataToFlutter('openUrlInAppBrowser', { url: 'https://www.google.com' });
+  };
+</script>
