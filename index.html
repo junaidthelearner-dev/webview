@@ -2,56 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Flutter ↔ JS Bridge Tester</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flutter ↔ JS Bridge Test</title>
   <style>
     :root {
       --primary: #007bff;
       --primary-dark: #0056b3;
-      --bg: #f7f9fc;
-      --card-bg: #ffffff;
-      --border: #dcdfe3;
-      --text: #333;
-      --log-font: monospace;
+      --error: #dc3545;
+      --bg: #f5f6fa;
+      --border: #dcdcdc;
     }
 
     body {
       font-family: system-ui, sans-serif;
       background: var(--bg);
-      color: var(--text);
       margin: 0;
       padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
     }
 
     h2 {
       background: var(--primary);
       color: white;
+      padding: 15px;
       width: 100%;
       text-align: center;
-      padding: 15px 0;
-      margin: 0;
-      font-weight: 600;
+      margin: 0 0 10px 0;
     }
 
     .container {
-      max-width: 800px;
       width: 90%;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
+      max-width: 800px;
+      background: white;
       border-radius: 10px;
-      margin: 20px auto;
+      border: 1px solid var(--border);
       box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-      padding: 15px 20px 25px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 15px;
     }
 
-    .inputs {
+    .inputs, .buttons {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
@@ -59,77 +53,51 @@
 
     input {
       flex: 1 1 45%;
-      min-width: 150px;
       padding: 10px;
-      font-size: 14px;
-      border-radius: 6px;
+      border-radius: 5px;
       border: 1px solid var(--border);
-    }
-
-    .buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      font-size: 14px;
     }
 
     button {
       flex: 1 1 45%;
-      min-width: 150px;
-      padding: 10px 15px;
-      font-size: 14px;
-      border-radius: 6px;
+      min-width: 140px;
+      padding: 10px;
       border: none;
-      cursor: pointer;
-      color: white;
+      border-radius: 5px;
       background: var(--primary);
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
       transition: background 0.2s;
     }
 
-    button:hover {
-      background: var(--primary-dark);
-    }
+    button:hover { background: var(--primary-dark); }
 
     button.clear {
-      background: #dc3545;
+      background: var(--error);
     }
-
-    button.clear:hover {
-      background: #b92b37;
-    }
+    button.clear:hover { background: #b92b37; }
 
     #logs {
       background: #fafafa;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 5px;
       padding: 10px;
       height: 300px;
       overflow-y: auto;
-      font-family: var(--log-font);
+      font-family: monospace;
       font-size: 13px;
       white-space: pre-wrap;
     }
 
-    .log-line {
-      border-bottom: 1px dashed #ddd;
-      padding: 5px 0;
-    }
-
-    .log-in {
-      color: #0c6b58;
-    }
-
-    .log-out {
-      color: #0056b3;
-    }
-
-    .log-error {
-      color: #b92b37;
-    }
+    .log-line { padding: 5px 0; border-bottom: 1px dashed #eee; }
+    .log-out { color: #0056b3; }
+    .log-in { color: #0c6b58; }
+    .log-error { color: #dc3545; }
 
     @media (max-width: 600px) {
-      .buttons button, input {
-        flex: 1 1 100%;
-      }
+      input, button { flex: 1 1 100%; }
     }
   </style>
 </head>
@@ -137,15 +105,15 @@
   <h2>Flutter ↔ JS Bridge Tester</h2>
   <div class="container">
     <div class="inputs">
-      <input type="text" id="keyInput" placeholder="Enter key (e.g. getPlatform)" />
-      <input type="text" id="valueInput" placeholder='Enter value (e.g. {"color":"dark"})' />
+      <input type="text" id="keyInput" placeholder="Enter key (e.g. getPlatform)">
+      <input type="text" id="valueInput" placeholder='Enter value (e.g. {"color":"dark"})'>
     </div>
 
     <div class="buttons">
       <button onclick="btnPullDataFromFlutter()">pullDataFromFlutter</button>
       <button onclick="btnPushDataToFlutter()">pushDataToFlutter</button>
-      <button onclick="btnPushDataToJs()">pushDataToJs</button>
-      <button onclick="btnPullDataFromJs()">pullDataFromJs</button>
+      <button onclick="btnPushDataToJs()">pushDataToJs (Simulate Flutter)</button>
+      <button onclick="btnPullDataFromJs()">pullDataFromJs (Simulate Flutter)</button>
       <button class="clear" onclick="clearLogs()">Clear Logs</button>
     </div>
 
@@ -153,14 +121,14 @@
   </div>
 
   <script>
-    // ======== Utility Functions ========
-    function log(msg, type = 'info') {
+    // ===== LOGGING =====
+    function log(msg, type='info') {
       const logs = document.getElementById('logs');
       const line = document.createElement('div');
       line.classList.add('log-line');
+      if (type === 'out') line.classList.add('log-out');
       if (type === 'in') line.classList.add('log-in');
-      else if (type === 'out') line.classList.add('log-out');
-      else if (type === 'error') line.classList.add('log-error');
+      if (type === 'error') line.classList.add('log-error');
       line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
       logs.appendChild(line);
       logs.scrollTop = logs.scrollHeight;
@@ -172,81 +140,71 @@
       log('🧹 Logs cleared');
     }
 
-    function safePostMessage(data) {
-      if (window.FlutterBridge && FlutterBridge.postMessage) {
-        FlutterBridge.postMessage(JSON.stringify(data));
-        log(`Sent to Flutter: ${JSON.stringify(data)}`, 'out');
-      } else {
-        log('⚠️ FlutterBridge not defined (mocked call)', 'error');
+    // ===== JS → Flutter =====
+    async function pullDataFromFlutter(key) {
+      log(`JS → Flutter: pullDataFromFlutter('${key}')`, 'out');
+      try {
+        const result = await window.flutter_inappwebview.callHandler('pullDataFromFlutter', key);
+        log(`✅ Flutter responded with: ${JSON.stringify(result)}`, 'in');
+      } catch (e) {
+        log(`❌ Error calling pullDataFromFlutter: ${e}`, 'error');
       }
     }
 
-    // ======== JS → Flutter ========
-    function pullDataFromFlutter(key) {
-      safePostMessage({ action: `pull:${key}`, payload: null });
+    async function pushDataToFlutter(key, value) {
+      log(`JS → Flutter: pushDataToFlutter('${key}', ${value})`, 'out');
+      try {
+        let parsed = value;
+        try { parsed = JSON.parse(value); } catch {}
+        const result = await window.flutter_inappwebview.callHandler('pushDataToFlutter', key, parsed);
+        log(`✅ Flutter acknowledged: ${JSON.stringify(result)}`, 'in');
+      } catch (e) {
+        log(`❌ Error calling pushDataToFlutter: ${e}`, 'error');
+      }
     }
 
-    function pushDataToFlutter(key, value) {
-      let data;
-      try { data = JSON.parse(value); } catch { data = value; }
-      safePostMessage({ action: `push:${key}`, payload: data });
-    }
-
-    // ======== Flutter → JS ========
-    window.onFlutterMessage = function (msg) {
-      log(`Flutter → JS pushDataToJs received: ${JSON.stringify(msg)}`, 'in');
+    // ===== Flutter → JS (callbacks Flutter can invoke) =====
+    window.onFlutterData = function(key, data) {
+      log(`Flutter → JS pushDataToJs('${key}', ${JSON.stringify(data)})`, 'in');
     };
 
-    window.onFlutterRequest = function (key) {
+    window.provideDataFromJs = function(key) {
       log(`Flutter → JS pullDataFromJs('${key}') called`, 'in');
-      const responses = {
-        getSiteProp: { siteName: 'Responsive Test Site', version: '2.0.0' },
-        default: { message: 'No data for key' }
+      const mockData = {
+        getSiteProp: { siteName: 'Demo Website', version: '2.0.1' },
+        theme: 'dark'
       };
-      return JSON.stringify(responses[key] || responses.default);
+      const response = JSON.stringify(mockData[key] || { message: 'No data found for key' });
+      log(`Returned to Flutter: ${response}`, 'out');
+      return response;
     };
 
-    window.onFlutterData = function (res) {
-      log(`JS received from Flutter: ${res.key} = ${JSON.stringify(res.data)}`, 'in');
-    };
-
-    // ======== Button Handlers ========
+    // ===== Button handlers =====
     function btnPullDataFromFlutter() {
-      const key = document.getElementById('keyInput').value || 'getPlatform';
+      const key = document.getElementById('keyInput').value || 'platform';
       pullDataFromFlutter(key);
     }
 
     function btnPushDataToFlutter() {
-      const key = document.getElementById('keyInput').value || 'setTheme';
-      const val = document.getElementById('valueInput').value || '{"color":"dark"}';
-      pushDataToFlutter(key, val);
+      const key = document.getElementById('keyInput').value || 'showAlert';
+      const value = document.getElementById('valueInput').value || '"Hello from JS"';
+      pushDataToFlutter(key, value);
     }
 
+    // simulate flutter → js
     function btnPushDataToJs() {
       const key = document.getElementById('keyInput').value || 'setOneSignalPlayerId';
-      const val = document.getElementById('valueInput').value || '{"id":"abc123"}';
-      const msg = { key, data: JSON.parse(val) };
-      log(`Simulated Flutter → JS pushDataToJs(${key})`, 'in');
-      window.onFlutterMessage && window.onFlutterMessage(msg);
+      const val = document.getElementById('valueInput').value || '{"id":"player_123"}';
+      window.onFlutterData(key, JSON.parse(val));
     }
 
+    // simulate flutter pulling data
     function btnPullDataFromJs() {
       const key = document.getElementById('keyInput').value || 'getSiteProp';
-      log(`Simulated Flutter → JS pullDataFromJs(${key})`, 'in');
-      const result = window.onFlutterRequest && window.onFlutterRequest(key);
-      log(`Returned to Flutter: ${result}`, 'out');
+      window.provideDataFromJs(key);
     }
 
-    // ======== Mock for Browser Testing ========
-    if (!window.FlutterBridge) {
-      window.FlutterBridge = {
-        postMessage: (msg) => {
-          log('🧪 Mock FlutterBridge.postMessage called: ' + msg, 'error');
-        }
-      };
-    }
-
-    log('✅ Responsive JS Bridge Test Page Loaded');
+    log('✅ JS Bridge Ready');
   </script>
 </body>
 </html>
