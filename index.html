@@ -1,59 +1,160 @@
-<h1>Flutter</h1>
-<script>
-  // =============== JS → Flutter Calls =================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Flutter ↔ JS Bridge Tester</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #logs {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .log-line {
+      border-bottom: 1px dashed #ccc;
+      padding: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h2>Flutter ↔ JS Bridge Tester</h2>
 
-  // JS asks Flutter for some data
-  function pullDataFromFlutter(key) {
-    alert(`JS → Flutter: pullDataFromFlutter('${key}') called`);
-    FlutterBridge?.postMessage(JSON.stringify({
-      action: `pull:${key}`,
-      payload: null
-    }));
-  }
+  <div id="controls">
+    <input type="text" id="keyInput" placeholder="Enter key (e.g. getPlatform)" />
+    <input type="text" id="valueInput" placeholder='Enter value (e.g. {"color":"dark"})' />
 
-  // JS sends some data or command to Flutter
-  function pushDataToFlutter(key, data) {
-    alert(`JS → Flutter: pushDataToFlutter('${key}', ${JSON.stringify(data)}) called`);
-    FlutterBridge?.postMessage(JSON.stringify({
-      action: `push:${key}`,
-      payload: data
-    }));
-  }
+    <button onclick="btnPullDataFromFlutter()">pullDataFromFlutter</button>
+    <button onclick="btnPushDataToFlutter()">pushDataToFlutter</button>
+    <button onclick="btnPushDataToJs()">pushDataToJs</button>
+    <button onclick="btnPullDataFromJs()">pullDataFromJs</button>
+  </div>
 
-  // =============== Flutter → JS Calls =================
+  <div id="logs"></div>
 
-  // Flutter calls this when sending data into JS
-  window.onFlutterMessage = function (msg) {
-    const { key, data } = msg;
-    alert(`Flutter → JS: pushDataToJs('${key}', ${JSON.stringify(data)}) received`);
-    console.log('Flutter → JS:', key, data);
-  };
+  <script>
+    // ======== Utility Functions ========
+    function log(msg, type = 'info') {
+      const logs = document.getElementById('logs');
+      const line = document.createElement('div');
+      line.classList.add('log-line');
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      if (type === 'error') line.style.color = 'red';
+      logs.appendChild(line);
+      logs.scrollTop = logs.scrollHeight;
+      console.log(msg);
+    }
 
-  // Flutter calls this when it wants to get data from JS
-  window.onFlutterRequest = function (key) {
-    alert(`Flutter → JS: pullDataFromJs('${key}') called`);
-    // Return a mock response for Flutter
-    const response = {
-      getSiteProp: { siteName: 'Test Site', version: '1.0.0' },
-      default: { message: 'Unknown key' }
+    function safePostMessage(data) {
+      if (window.FlutterBridge && FlutterBridge.postMessage) {
+        FlutterBridge.postMessage(JSON.stringify(data));
+        log(`Sent to Flutter: ${JSON.stringify(data)}`);
+      } else {
+        log('⚠️ FlutterBridge not defined (mocking call)', 'error');
+        console.warn('FlutterBridge not defined:', data);
+      }
+    }
+
+    // ======== JS → Flutter ========
+    function pullDataFromFlutter(key) {
+      safePostMessage({ action: `pull:${key}`, payload: null });
+    }
+
+    function pushDataToFlutter(key, value) {
+      let data;
+      try { data = JSON.parse(value); } catch { data = value; }
+      safePostMessage({ action: `push:${key}`, payload: data });
+    }
+
+    // ======== Flutter → JS ========
+    window.onFlutterMessage = function (msg) {
+      log(`Flutter → JS pushDataToJs received: ${JSON.stringify(msg)}`);
     };
-    return JSON.stringify(response[key] || response.default);
-  };
 
-  // When Flutter sends data back after JS called pullDataFromFlutter()
-  window.onFlutterData = function (res) {
-    alert(`JS received data from Flutter: ${res.key} = ${JSON.stringify(res.data)}`);
-    console.log('Data from Flutter:', res);
-  };
+    window.onFlutterRequest = function (key) {
+      log(`Flutter → JS pullDataFromJs('${key}') called`);
+      // Return some mock data for testing
+      const responses = {
+        getSiteProp: { siteName: 'Test Site', version: '1.0.0' },
+        default: { message: 'No data for key' }
+      };
+      return JSON.stringify(responses[key] || responses.default);
+    };
 
-  // =============== AUTO TEST ON PAGE LOAD ===============
-  window.onload = function () {
-    alert("JS Bridge Test Loaded ✅\nTesting pullDataFromFlutter and pushDataToFlutter...");
+    window.onFlutterData = function (res) {
+      log(`JS received from Flutter: ${res.key} = ${JSON.stringify(res.data)}`);
+    };
 
-    // Test JS → Flutter
-    pullDataFromFlutter('getPlatform');
-    pullDataFromFlutter('getLocation');
-    pushDataToFlutter('setTheme', { color: 'dark' });
-    pushDataToFlutter('openUrlInAppBrowser', { url: 'https://www.google.com' });
-  };
-</script>
+    // ======== Button Handlers ========
+    function btnPullDataFromFlutter() {
+      const key = document.getElementById('keyInput').value || 'getPlatform';
+      pullDataFromFlutter(key);
+    }
+
+    function btnPushDataToFlutter() {
+      const key = document.getElementById('keyInput').value || 'setTheme';
+      const val = document.getElementById('valueInput').value || '{"color":"dark"}';
+      pushDataToFlutter(key, val);
+    }
+
+    function btnPushDataToJs() {
+      const key = document.getElementById('keyInput').value || 'setOneSignalPlayerId';
+      const val = document.getElementById('valueInput').value || '{"id":"abc123"}';
+      const msg = { key, data: JSON.parse(val) };
+      log(`Simulating Flutter → JS pushDataToJs(${key})`);
+      window.onFlutterMessage && window.onFlutterMessage(msg);
+    }
+
+    function btnPullDataFromJs() {
+      const key = document.getElementById('keyInput').value || 'getSiteProp';
+      log(`Simulating Flutter → JS pullDataFromJs(${key})`);
+      const result = window.onFlutterRequest && window.onFlutterRequest(key);
+      log(`Returned to Flutter: ${result}`);
+    }
+
+    // ======== Mock for browser testing ========
+    if (!window.FlutterBridge) {
+      window.FlutterBridge = {
+        postMessage: (msg) => {
+          log('🧪 Mock FlutterBridge.postMessage called: ' + msg);
+        }
+      };
+    }
+
+    log('✅ JS Bridge Test Page Loaded');
+  </script>
+</body>
+</html>
