@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Webview Functionalities</title>
+  <style>
+    :root {
+      --primary: #007bff;
+      --primary-dark: #0056b3;
+      --success: #28a745;
+      --error: #dc3545;
+      --bg: #f5f6fa;
+      --border: #dcdcdc;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2 {
+      background: var(--primary);
+      color: white;
+      padding: 15px;
+      width: 100%;
+      text-align: center;
+      margin: 0 0 10px 0;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 800px;
+      background: white;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      background: #fafafa;
+    }
+
+    .section h3 {
+      margin: 0 0 12px 0;
+      color: var(--primary-dark);
+      font-size: 16px;
+    }
+
+    .inputs, .buttons, .downloads {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input[type="text"], input[type="url"] {
+      flex: 1 1 45%;
+      min-width: 200px;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    input[type="file"] {
+      padding: 8px;
+      font-size: 14px;
+      flex: 1 1 100%;
+    }
+
+    button {
+      min-width: 120px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 5px;
+      background: var(--primary);
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: var(--primary-dark); }
+
+    button.location {
+      background: var(--success);
+    }
+    button.location:hover { background: #218838; }
+
+    a.download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    a.download-link:hover { background: var(--primary-dark); }
+
+    .preview-box {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px dashed var(--border);
+      border-radius: 5px;
+      min-height: 80px;
+      background: white;
+    }
+    .preview-box img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 5px;
+    }
+
+    .location-result {
+      margin-top: 10px;
+      padding: 10px;
+      background: white;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .nav-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .nav-form input {
+      flex: 1 1 200px;
+    }
+    .nav-form button {
+      flex: 0 0 auto;
+    }
+
+    .camera-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .camera-options label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .camera-options label:hover {
+      border-color: var(--primary);
+      background: #f0f7ff;
+    }
+    .camera-options input[type="radio"] {
+      margin: 0;
+    }
+
+    @media (max-width: 600px) {
+      input[type="text"], input[type="url"] { flex: 1 1 100%; min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <h2>Webview Functionalities</h2>
+  <div class="container">
+    <div>
+      <a href="./index.html">← Back to Bridge Tester</a>
+    </div>
+
+    <!-- 1. Camera / Media capture -->
+    <div class="section">
+      <h3>📷 Capture Image (Camera or Gallery)</h3>
+      <p style="margin: 0 0 10px 0; font-size: 13px; color: #666;">
+        Choose source then click to capture/select image. Works in webview with camera & media access.
+      </p>
+      <div class="camera-options">
+        <label>
+          <input type="radio" name="captureSource" value="camera" checked> Camera
+        </label>
+        <label>
+          <input type="radio" name="captureSource" value="gallery"> Gallery / Media
+        </label>
+      </div>
+      <input type="file" id="imageInput" accept="image/*" capture="environment">
+      <div class="preview-box" id="imagePreview">Preview will appear here</div>
+    </div>
+
+    <!-- 2. Downloadable files -->
+    <div class="section">
+      <h3>📥 Download Files</h3>
+      <p style="margin: 0 0 12px 0; font-size: 13px; color: #666;">
+        Sample files from the internet (use your own URLs if needed):
+      </p>
+      <div class="downloads">
+        <a class="download-link" href="./dummy.pdf" download="dummy.pdf">📄 dummy.pdf</a>
+        <a class="download-link" href="./dummy.csv" download="dummy.csv">📋 dummy.csv</a>
+        <a class="download-link" href="./image.jpg" download="image.jpg">🖼️ image.jpg</a>
+      </div>
+    </div>
+
+    <!-- 3. Location for Google Maps -->
+    <div class="section">
+      <h3>📍 Get Location (for Google Maps)</h3>
+      <p style="margin: 0 0 10px 0; font-size: 13px; color: #666;">
+        Get current coordinates. Use these in Google Maps: <code>https://www.google.com/maps?q=LAT,LNG</code>
+      </p>
+      <button class="location" onclick="getLocation()">Get My Location</button>
+      <div class="location-result" id="locationResult">—</div>
+    </div>
+
+    <!-- 4. Navigate to URL -->
+    <div class="section">
+      <h3>🔗 Go to URL</h3>
+      <p style="margin: 0 0 10px 0; font-size: 13px; color: #666;">
+        Enter any URL and click Go to navigate:
+      </p>
+      <div class="nav-form">
+        <input type="url" id="urlInput" placeholder="https://example.com">
+        <button onclick="goToPage()">Go</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Image capture (Camera / Gallery) =====
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+
+    document.querySelectorAll('input[name="captureSource"]').forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        if (this.value === 'camera') {
+          imageInput.setAttribute('capture', 'environment');
+        } else {
+          imageInput.removeAttribute('capture');
+        }
+        imageInput.value = '';
+        imagePreview.innerHTML = 'Preview will appear here';
+      });
+    });
+
+    imageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) {
+        imagePreview.innerHTML = '<span style="color:#999">No image selected</span>';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        imagePreview.innerHTML = '<img src="' + ev.target.result + '" alt="Preview">';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ===== Location for Google Maps =====
+    function getLocation() {
+      const result = document.getElementById('locationResult');
+      result.textContent = 'Getting location...';
+
+      if (!navigator.geolocation) {
+        result.textContent = 'Geolocation is not supported by this browser.';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const mapsUrl = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+          result.innerHTML =
+            'Latitude: ' + lat + '\n' +
+            'Longitude: ' + lng + '\n\n' +
+            'Google Maps: ' + mapsUrl + '\n\n' +
+            '<a href="' + mapsUrl + '" target="_blank">Open in Google Maps →</a>';
+        },
+        function(err) {
+          result.textContent = 'Error: ' + (err.message || 'Unable to retrieve location.');
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+
+    // ===== Navigate to URL =====
+    function goToPage() {
+      let url = document.getElementById('urlInput').value.trim();
+      if (!url) {
+        alert('Please enter a URL');
+        return;
+      }
+      if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+      }
+      window.location.href = url;
+    }
+
+    document.getElementById('urlInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') goToPage();
+    });
+  </script>
+</body>
+</html>
