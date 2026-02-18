@@ -59,6 +59,45 @@
       font-size: 14px;
     }
 
+    .btn-group {
+      display: flex;
+      flex: 1 1 45%;
+      min-width: 200px;
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid transparent;
+    }
+    .btn-group:focus-within {
+      outline: 2px solid var(--primary-dark);
+      outline-offset: 1px;
+    }
+
+    .btn-group button {
+      flex: 1;
+      min-width: 0;
+      border-radius: 5px 0 0 5px;
+      margin: 0;
+    }
+    .btn-group select {
+      width: 36px;
+      min-width: 36px;
+      padding: 8px 4px;
+      border: none;
+      border-left: 1px solid rgba(255,255,255,0.3);
+      border-radius: 0 5px 5px 0;
+      background: var(--primary);
+      color: white;
+      font-size: 12px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    .btn-group select:hover {
+      background-color: var(--primary-dark);
+    }
+
     button {
       flex: 1 1 45%;
       min-width: 140px;
@@ -97,7 +136,7 @@
     .log-error { color: #dc3545; }
 
     @media (max-width: 600px) {
-      input, button { flex: 1 1 100%; }
+      input, button, .btn-group { flex: 1 1 100%; min-width: 100%; }
     }
   </style>
 </head>
@@ -113,10 +152,41 @@
     </div>
 
     <div class="buttons">
-      <button onclick="btnPullDataFromFlutter()">pullDataFromFlutter</button>
-      <button onclick="btnPushDataToFlutter()">pushDataToFlutter</button>
-      <button onclick="btnPushDataToJs()">pushDataToJs (Simulate Flutter)</button>
-      <button onclick="btnPullDataFromJs()">pullDataFromJs (Simulate Flutter)</button>
+      <div class="btn-group">
+        <button onclick="btnPullDataFromFlutter()">pullDataFromFlutter</button>
+        <select id="pullDropdown" onchange="onPullDropdownChange(this)">
+          <option value="">--</option>
+          <option value="getOneSignalPlayerId">getOneSignalPlayerId</option>
+          <option value="getPlatform">getPlatform</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button onclick="btnPushDataToFlutter()">pushDataToFlutter</button>
+        <select id="pushDropdown" onchange="onPushDropdownChange(this)">
+          <option value="">--</option>
+          <option value="setTheme:dark">setTheme (dark)</option>
+          <option value="setTheme:light">setTheme (light)</option>
+          <option value="setTheme:auto">setTheme (auto)</option>
+          <option value="openUrlInAppBrowser">openUrlInAppBrowser</option>
+          <option value="downloadFromUrl">downloadFromUrl</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button onclick="btnPushDataToJs()">pushDataToJs (Simulate Flutter)</button>
+        <select id="pushJsDropdown" onchange="onPushJsDropdownChange(this)">
+          <option value="">--</option>
+          <option value="setOneSignalPlayerId">setOneSignalPlayerId</option>
+          <option value="setTheme">setTheme</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button onclick="btnPullDataFromJs()">pullDataFromJs (Simulate Flutter)</button>
+        <select id="pullJsDropdown" onchange="onPullJsDropdownChange(this)">
+          <option value="">--</option>
+          <option value="getSiteProp">getSiteProp</option>
+          <option value="theme">theme</option>
+        </select>
+      </div>
       <button class="clear" onclick="clearLogs()">Clear Logs</button>
     </div>
 
@@ -205,6 +275,70 @@
     function btnPullDataFromJs() {
       const key = document.getElementById('keyInput').value || 'getSiteProp';
       window.provideDataFromJs(key);
+    }
+
+    // ===== Dropdown handlers (fill inputs + trigger function) =====
+    const PUSH_PRESETS = {
+      'setTheme:dark': { key: 'setTheme', value: '{"color":"dark"}' },
+      'setTheme:light': { key: 'setTheme', value: '{"color":"light"}' },
+      'setTheme:auto': { key: 'setTheme', value: '{"color":"auto"}' },
+      'openUrlInAppBrowser': { key: 'openUrlInAppBrowser', value: '{"url":"https://www.google.com/search?q=www.example.com&client=opera&hs=Yz8&sca_esv=6b0b75a31f80727a&ei=b8AAaZ_ED63Mi-gPj4jIkAg&ved=0ahUKEwjft8bC-8aQAxUt5gIHHQ8EEoIQ4dUDCBE&uact=5&oq=www.example.com&gs_lp=Egxnd3Mtd2l6LXNlcnAiD3d3dy5leGFtcGxlLmNvbTIOEAAYgAQYsAMYhgMYigUyCxAAGIAEGLADGKIEMggQABiwAxjvBTIIEAAYsAMY7wUyCBAAGLADGO8FSMMHUNsFWM0GcAF4AJABAJgBzwGgAc8BqgEDMi0xuAEDyAEA-AEBmAIBoAILmAMAiAYBkAYFkgcBMaAHpAeyBwC4BwDCBwMzLTHIBwk&sclient=gws-wiz-serp"}' },
+      'downloadFromUrl': { key: 'downloadFromUrl', value: 'https://cdn.wsform.com/wp-content/uploads/2020/06/industry.csv' }
+    };
+    const PUSH_JS_PRESETS = {
+      'setOneSignalPlayerId': { key: 'setOneSignalPlayerId', value: '{"playerId":"playerid"}' },
+      'setTheme': { key: 'setTheme', value: '{"color":"dark"}' }
+    };
+
+    async function onPullDropdownChange(sel) {
+      const val = sel.value;
+      if (!val) return;
+      sel.selectedIndex = 0;
+      document.getElementById('keyInput').value = val;
+      if (val === 'getOneSignalPlayerId') {
+        log(`JS → Flutter: pullDataFromFlutter('getOneSignalPlayerId')`, 'out');
+        try {
+          const result = await window.flutter_inappwebview.callHandler('pullDataFromFlutter', 'getOneSignalPlayerId');
+          log(`✅ Flutter responded with: ${JSON.stringify(result)}`, 'in');
+          const playerId = (result && result.playerId) || (typeof result === 'string' ? result : 'playerid');
+          window.onFlutterData('setOneSignalPlayerId', { playerId: playerId });
+        } catch (e) {
+          log(`❌ Error: ${e}`, 'error');
+          window.onFlutterData('setOneSignalPlayerId', { playerId: 'playerid' });
+        }
+      } else {
+        pullDataFromFlutter(val);
+      }
+    }
+
+    function onPushDropdownChange(sel) {
+      const val = sel.value;
+      if (!val) return;
+      sel.selectedIndex = 0;
+      const preset = PUSH_PRESETS[val];
+      if (!preset) return;
+      document.getElementById('keyInput').value = preset.key;
+      document.getElementById('valueInput').value = preset.value;
+      pushDataToFlutter(preset.key, preset.value);
+    }
+
+    function onPushJsDropdownChange(sel) {
+      const val = sel.value;
+      if (!val) return;
+      sel.selectedIndex = 0;
+      const preset = PUSH_JS_PRESETS[val];
+      if (!preset) return;
+      document.getElementById('keyInput').value = preset.key;
+      document.getElementById('valueInput').value = preset.value;
+      btnPushDataToJs();
+    }
+
+    function onPullJsDropdownChange(sel) {
+      const val = sel.value;
+      if (!val) return;
+      sel.selectedIndex = 0;
+      document.getElementById('keyInput').value = val;
+      btnPullDataFromJs();
     }
 
     log('✅ JS Bridge Ready');
